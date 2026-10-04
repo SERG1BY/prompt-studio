@@ -42,11 +42,13 @@ test('every registry entry carries id, label, model, key, engine and capabilitie
 })
 
 test('a registered target without its i18n help and guide entries is reported', () => {
-  assert.deepEqual(missingTargetText(TARGETS, CORE_MESSAGES), [], 'every registered target has its help and guide in en and pt')
+  assert.deepEqual(missingTargetText(TARGETS, CORE_MESSAGES), [], 'every registered target has its help and guide in every locale')
   assert.ok(typeof CORE_MESSAGES.en.core.fields.autonomy.help === 'object' && typeof CORE_MESSAGES.pt.core.fields.autonomy.guide === 'object', 'the check is not vacuous')
+  // One gap per locale, per part: the ghost target is unknown, so every bundle must be reported.
+  const locales = Object.keys(CORE_MESSAGES)
   assert.deepEqual(
     missingTargetText([...TARGETS, { id: 'ghost' }], CORE_MESSAGES).sort(),
-    ['en.autonomy.guide.ghost', 'en.autonomy.help.ghost', 'pt.autonomy.guide.ghost', 'pt.autonomy.help.ghost']
+    locales.flatMap(locale => [`${locale}.autonomy.guide.ghost`, `${locale}.autonomy.help.ghost`]).sort()
   )
   const { sonnet, ...helpWithoutSonnet } = CORE_MESSAGES.pt.core.fields.autonomy.help
   const partial = { pt: { core: { fields: { autonomy: { ...CORE_MESSAGES.pt.core.fields.autonomy, help: helpWithoutSonnet } } } } }

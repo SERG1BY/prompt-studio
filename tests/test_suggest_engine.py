@@ -384,6 +384,8 @@ def test_compose_puts_back_a_documented_line_the_writer_dropped():
     assert "restored" in out["notes"]
     pt = se.compose({"target": "astra", "intent": "Faça X.", "baseline": baseline, "answers": [], "locale": "pt"}, llm=lambda *a, **k: (dropped, "fake/m"))
     assert "recolocada" in pt["notes"]
+    ru = se.compose({"target": "astra", "intent": "Faça X.", "baseline": baseline, "answers": [], "locale": "ru"}, llm=lambda *a, **k: (dropped, "fake/m"))
+    assert se.RESTORED_NOTE_RU in ru["notes"], "the restored-line note follows the notes language"
     kept = '{"prompt": "AUTONOMIA\\nNão introduza avisos por risco hipotético.\\n\\nSAÍDA\\nCurto.", "notes": ""}'
     out2 = se.compose({"target": "astra", "intent": "Faça X.", "baseline": baseline, "answers": []}, llm=lambda *a, **k: (kept, "fake/m"))
     assert line not in out2["prompt"], "translated line kept: nothing added"
@@ -466,7 +468,10 @@ def test_prompts_do_not_mention_the_old_site_engines():
     assert "site" not in inspect.getsource(se).lower().replace("position", "")
 
 
-@pytest.mark.parametrize("locale,expected", [(None, "in English"), ("en", "in English"), ("pt", "in Brazilian Portuguese"), ("xx", "in English")])
+@pytest.mark.parametrize(
+    "locale,expected",
+    [(None, "in English"), ("en", "in English"), ("pt", "in Brazilian Portuguese"), ("ru", "in Russian"), ("xx", "in English")],
+)
 def test_locale_sets_the_language_of_why_and_notes(locale, expected):
     se = _load()
     extra = {} if locale is None else {"locale": locale}

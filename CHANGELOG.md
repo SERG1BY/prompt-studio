@@ -4,6 +4,21 @@ Versions come from the commit subjects. Only 1.6.0 and later have git tags (`v1.
 
 ## Unreleased
 
+### Russian
+
+- Russian joins Portuguese and English as a Studio language: interface, step questions, option labels and the AI's
+  notes (Settings, F3 → Language → Русский). The prompt still follows the language of your request, and the `guide`
+  lines the model reads stay English, as in Portuguese.
+- Draft recognition covers Russian: a Russian draft is classified into the same categories and deliverable
+  signals as a Portuguese one, and the tests pin that per category. Everyday Russian that is not a task
+  ("первый класс") does not read as one.
+- The AI's restored-line note reads in Russian, like every other note, when the Studio language is Russian.
+- A locale is now a member of `BUNDLE_LOCALES` rather than a branch in `localeOf`, and the Settings selector derives
+  its list from that constant, so the next locale is a bundle plus one name instead of a code change.
+- Tests: every message bundle is checked against `en` for key parity, and a Russian string that is byte-identical to
+  its English counterpart fails unless the key is an untranslated name or a `guide`. The Python side checks the
+  restored-line note in every locale too.
+
 ### Regression protection
 
 - Tests: an adversarial battery covers model/settings changes, large or malformed contexts, cancellation and provider

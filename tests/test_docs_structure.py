@@ -1,4 +1,4 @@
-"""The user-facing docs keep their shape: a short README, six ADRs, a glossary."""
+"""The user-facing docs keep their shape: a short README, numbered ADRs, a glossary."""
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -14,8 +14,10 @@ def test_readme_is_user_sized_and_links_the_contributor_docs():
         assert dev_heading not in text, dev_heading
 
 
-def test_six_adrs_each_with_status_context_decision_consequences():
-    assert [p.name[:4] for p in ADRS] == ["0001", "0002", "0003", "0004", "0005", "0006"]
+def test_adrs_are_numbered_contiguously_and_each_with_status_context_decision_consequences():
+    names = [p.name[:4] for p in ADRS]
+    assert names == [f"{i:04d}" for i in range(1, len(names) + 1)], "ADRs are numbered contiguously from 0001"
+    assert len(names) >= 6, "the decisions this project has taken are on record"
     for adr in ADRS:
         lines = adr.read_text().splitlines()
         assert lines[0].startswith("# "), adr.name

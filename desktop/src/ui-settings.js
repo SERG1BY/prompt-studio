@@ -226,11 +226,17 @@ function SettingsDialog() {
               children: [
                 jsx(SelectTrigger, { children: jsx(SelectValue, {}) }),
                 jsxs(SelectContent, {
-                  children: [
-                    jsx(SelectItem, { value: 'auto', children: t('settings.languageAuto') }),
-                    jsx(SelectItem, { value: 'pt', children: t('settings.languagePt') }),
-                    jsx(SelectItem, { value: 'en', children: t('settings.languageEn') })
-                  ]
+                  // Derived from LANGUAGES so a new bundle shows up without touching this dialog; each value
+                  // reads its own settings.language<Locale> label, with 'auto' as the only unlisted one.
+                  children: LANGUAGES.map(language =>
+                    jsx(SelectItem, {
+                      key: language,
+                      value: language,
+                      children: language === 'auto'
+                        ? t('settings.languageAuto')
+                        : t(`settings.language${language[0].toUpperCase()}${language.slice(1)}`)
+                    })
+                  )
                 })
               ]
             })

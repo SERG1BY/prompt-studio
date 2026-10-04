@@ -75,9 +75,9 @@ close Hermes Desktop on the app machine. Every option, the Windows path and the 
 
 ![The final prompt preview with the AI-written prompt, the Send now (F9), Put in composer to edit (Alt+E), See the version without AI, Back to steps and Cancel buttons, and the red note that attachments do not go with Send now](docs/images/step-preview.png)
 
-The AI mode (Auto, On request, Off) decides when step suggestions are requested. The interface is in English or
-Brazilian Portuguese: the Studio follows the Hermes language, and Settings (F3) can fix it to Português or English,
-which also sets the language of the questions and of the AI's notes. The prompt follows the language of your request.
+The AI mode (Auto, On request, Off) decides when step suggestions are requested. The interface is in English,
+Brazilian Portuguese or Russian: the Studio follows the Hermes language, and Settings (F3) can fix it to Português,
+English or Русский, which also sets the questions and the AI's notes. The prompt follows your request's language.
 
 ## Keyboard
 

@@ -97,6 +97,19 @@ test('question object shape, locale text and detected deliverable', () => {
   const design = questionFor('opus', CODE, [], 'designAvoid', 'en')
   assert.deepEqual([design.recommended, design.options, design.hint], ['recommended list', ['Avoid nothing'], OPUS.DEFAULT_DESIGN_AVOID])
   assert.equal(questionFor('astra', CODE, [], 'designAvoid'), null)
+
+  // The design step's own buttons must map back to a machine value, in EVERY locale. These lists are
+  // compared against foldText(), so a transliterated or unfolded Russian entry silently stops matching
+  // and the localized label is sent to the engine as a literal avoid-list line (review P1-4/P1-5).
+  // The default button answers the engine's own default list, the "avoid nothing" button answers 'none'.
+  for (const locale of Object.keys(CORE_MESSAGES)) {
+    const step = questionFor('opus', CODE, [], 'designAvoid', locale)
+    assert.ok(step, `${locale}: the design step is asked for a code task`)
+    assert.equal(answerToValue('designAvoid', step.recommended, 'opus'), OPUS.DEFAULT_DESIGN_AVOID, `${locale}: the default button reads as the default list`)
+    for (const label of step.options) {
+      assert.equal(answerToValue('designAvoid', label, 'opus'), 'none', `${locale}: "${label}" reads as "avoid nothing"`)
+    }
+  }
   assert.match(questionFor('astra', CODE, [], 'autonomy', 'en').help, /Astra already tends/)
   assert.equal(questionFor('opus', CODE, [], 'autonomy', 'pt').question, 'Quanta autonomia o Opus deve ter?')
   assert.equal(nextQuestion('opus', CODE, walk('opus', CODE).ladder, 'en').done, true)
@@ -268,8 +281,12 @@ test('studioAnswers: answered steps only, locale question text, isDefault', () =
   assert.equal(fieldForTarget('designAvoid', 'opus'), true)
 })
 
-test('core i18n: en and pt have identical keys; core and UI bundles never clobber each other', () => {
-  assert.deepEqual(keys(CORE_MESSAGES.pt), keys(CORE_MESSAGES.en))
+test('core i18n: every locale has identical keys; core and UI bundles never clobber each other', () => {
+  const locales = Object.keys(CORE_MESSAGES)
+  for (const locale of locales) {
+    if (locale === 'en') continue
+    assert.deepEqual(keys(CORE_MESSAGES[locale]), keys(CORE_MESSAGES.en), `core bundle ${locale}`)
+  }
   assert.deepEqual(Object.keys(CORE_MESSAGES).sort(), Object.keys(UI_MESSAGES).sort())
   for (const locale of Object.keys(CORE_MESSAGES)) {
     const clash = Object.keys(CORE_MESSAGES[locale]).filter(k => k in UI_MESSAGES[locale])
@@ -277,18 +294,21 @@ test('core i18n: en and pt have identical keys; core and UI bundles never clobbe
   }
   for (const engine of [OPUS, ASTRA, SONNET]) {
     for (const [field, values] of Object.entries(engine.options)) {
-      for (const locale of ['en', 'pt']) for (const v of values) assert.ok(CORE_MESSAGES[locale].core.fields[field].options[v], `${locale} ${field}.${v}`)
+      for (const locale of locales) for (const v of values) assert.ok(CORE_MESSAGES[locale].core.fields[field].options[v], `${locale} ${field}.${v}`)
     }
   }
 })
 
-test('UI i18n: en and pt have identical keys', () => {
-  assert.deepEqual(keys(UI_MESSAGES.pt), keys(UI_MESSAGES.en))
+test('UI i18n: every locale has identical keys', () => {
+  for (const locale of Object.keys(UI_MESSAGES)) {
+    if (locale === 'en') continue
+    assert.deepEqual(keys(UI_MESSAGES[locale]), keys(UI_MESSAGES.en), `UI bundle ${locale}`)
+  }
 })
 
 // docs/CONTRACT.md lists every `code` a client can receive; the tables mark the ones no REST client ever sees.
 // The same table is checked against the real routes in tests/test_contract.py.
-test('UI i18n: errors.<code> has a text, in en and pt, for every code CONTRACT.md says a client can receive, and for no other', async () => {
+test('UI i18n: errors.<code> has a text, in every locale, for every code CONTRACT.md says a client can receive, and for no other', async () => {
   const doc = await readFile(new URL('../../docs/CONTRACT.md', import.meta.url), 'utf8')
   const reachable = new Set()
   for (const header of ['| `code` | When | `error` |', '| `code` | Route | When | `error` |']) {
@@ -300,6 +320,50 @@ test('UI i18n: errors.<code> has a text, in en and pt, for every code CONTRACT.m
   }
   assert.ok(reachable.size > 10, `codes read from the doc: ${[...reachable]}`)
   for (const locale of Object.keys(UI_MESSAGES)) assert.deepEqual(Object.keys(UI_MESSAGES[locale].errors).sort(), [...reachable].sort(), locale)
+})
+
+// A `ru` string identical to its `en` counterpart is almost always a string someone forgot to translate: key
+// parity cannot catch that. `guide` strings are model instructions and stay English by decision
+// (docs/adr/0007-russian-third-bundle.md), and a few names are deliberately untranslated. ALLOW lists the exact
+// keys that may legitimately read the same in both bundles.
+const ALLOW_SAME = new Set([
+  'core.fields.deliverable.options.json',
+  'core.fields.format.options.json',
+  'core.fields.thirdPartySource.guide',
+  'core.fields.requirements.guide',
+  'core.fields.examples.guide',
+  'core.fields.subagents.guide',
+  'core.fields.autonomy.guide.opus',
+  'core.fields.autonomy.guide.astra',
+  'core.fields.autonomy.guide.sonnet'
+])
+const collect = (bundle, prefix, out) => {
+  for (const [key, value] of Object.entries(bundle)) {
+    const path = prefix ? `${prefix}.${key}` : key
+    if (value && typeof value === 'object') collect(value, path, out)
+    else out.push([path, value])
+  }
+  return out
+}
+// An empty string is empty in every bundle, not an untranslated one.
+const untranslated = ([path, value], base) => typeof value === 'string' && value !== '' && base === value
+
+test('core i18n: no ru string is left byte-identical to en outside the allowlist', () => {
+  const en = new Map(collect(CORE_MESSAGES.en.core, 'core', []))
+  const identical = collect(CORE_MESSAGES.ru.core, 'core', [])
+    .filter(entry => !ALLOW_SAME.has(entry[0]) && untranslated(entry, en.get(entry[0])))
+    .map(([path]) => path)
+  assert.deepEqual(identical, [], `ru strings still English: ${identical.join(', ')}`)
+})
+
+test('UI i18n: no ru string is left byte-identical to en outside the allowlist', () => {
+  // The product name, the target model names and the endonym language names read the same in every locale.
+  const allow = new Set(['locale', 'studio.region', 'open.label', 'palette.label', 'settings.languagePt', 'settings.languageEn', 'settings.languageRu'])
+  const en = new Map(collect(UI_MESSAGES.en, '', []))
+  const identical = collect(UI_MESSAGES.ru, '', [])
+    .filter(entry => !allow.has(entry[0]) && !ALLOW_SAME.has(entry[0]) && untranslated(entry, en.get(entry[0])))
+    .map(([path]) => path)
+  assert.deepEqual(identical, [], `ru strings still English: ${identical.join(', ')}`)
 })
 
 test('studio-core.js imports only the engines and its i18n bundle', async () => {

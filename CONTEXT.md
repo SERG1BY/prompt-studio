@@ -53,5 +53,29 @@ in the prompt.
 **backend half** (the dashboard routes) serves the AI help: suggestions, the polish and the session summary. The **desktop half**
 (`desktop/plugin.js`) is the Studio itself, running inside Hermes Desktop.
 
+**Studio language**: the language the Studio's own interface and its questions use, chosen in Settings. `auto` follows
+the Hermes language. It never follows the draft. Not to be confused with the **request language**.
+
+**Request language**: the language of the draft. It decides the language of the assembled prompt, independently of the
+Studio language.
+
+**Notes language**: the language the model writes its human-facing notes in, sent to the backend as the `locale` field.
+It follows the Studio language.
+
+**Guide**: an instruction written for the model inside a step, never shown to a human. English in every bundle, whatever
+the Studio language.
+
+**Help**: an explanation shown under a question, for a human. Localized in every bundle.
+
+**Option value**: a stable machine identifier for one choice of a step (`implementation`). Never translated, never shown.
+
+**Option label**: the localized text of an option value, shown as a button. This is what a rung persists, and what is
+mapped back to a value when a saved ladder is read.
+
+**Rung**: one answered step of the ladder. Persisted with its question and its localized option label.
+
+**Skip marker**: `(skipped)` — the fixed, non-localized text stored when a text step is left empty on purpose. Never
+translated, so a ladder reads the same in any Studio language.
+
 **Shortcut map**: the single list of the Studio's keys, from which every printed key, the F1 help and the README keyboard table
 are derived.

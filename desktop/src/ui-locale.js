@@ -9,9 +9,11 @@ function resolveMessage(bundle, key, args) {
   return typeof value === 'string' ? value : null
 }
 
-// Studio language (settings): 'auto' follows Hermes; 'pt' / 'en' use that bundle for every Studio string,
+// Studio language (settings): 'auto' follows Hermes; the rest pick that bundle for every Studio string,
 // the questions (through localeOf) and the `locale` sent to the backend.
-const LANGUAGES = ['auto', 'pt', 'en']
+// BUNDLE_LOCALES lists the message bundles that exist; a locale is a member of this list, never a branch.
+const BUNDLE_LOCALES = ['en', 'pt', 'ru']
+const LANGUAGES = ['auto', ...BUNDLE_LOCALES]
 const $language = atom('auto')
 
 function fixedT(language) {
@@ -34,8 +36,10 @@ function useT() {
 }
 
 // The app decides the language; the bundle tells which one resolved ('en' is the fallback).
+// A locale is a member of BUNDLE_LOCALES, never a branch: an unknown one falls back to the complete 'en' bundle.
 function localeOf(t) {
-  return t('locale') === 'pt' ? 'pt' : 'en'
+  const locale = t('locale')
+  return BUNDLE_LOCALES.includes(locale) ? locale : 'en'
 }
 
 function activeLocale() {

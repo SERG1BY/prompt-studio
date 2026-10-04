@@ -1,13 +1,15 @@
 // Display text of the studio core: step questions, help, AI-writer guides and option labels.
 // `en` is complete and the default; `pt` is the Brazilian Portuguese wording the Studio used
-// before v1 (kept word for word so ladders saved in Portuguese still map back to their values).
-// Both bundles must keep exactly the same keys (tests/desktop/studio-core.test.mjs checks it).
+// before v1 (kept word for word so ladders saved in Portuguese still map back to their values);
+// `ru` is the Russian wording. Every bundle must keep exactly the same keys
+// (tests/desktop/studio-core.test.mjs checks it). The `guide` strings stay English in every bundle:
+// they are read by the model, never by a human (docs/adr/0007-russian-third-bundle.md).
 //
 // i18n choice: these strings are NOT registered with ctx.i18n. plugin.js already passes its active
-// locale ('en' | 'pt') to every core call, so the core picks CORE_MESSAGES[locale] itself. That keeps
-// the core pure and testable without a host, and the UI bundle (UI_MESSAGES) and this one never
-// share a namespace: every top-level key here sits under `core`, which the UI bundle does not use
-// (the disjointness test enforces it), so a later merge would not clobber anything either.
+// locale ('en' | 'pt' | 'ru') to every core call, so the core picks CORE_MESSAGES[locale] itself.
+// That keeps the core pure and testable without a host, and the UI bundle (UI_MESSAGES) and this one
+// never share a namespace: every top-level key here sits under `core`, which the UI bundle does not
+// use (the disjointness test enforces it), so a later merge would not clobber anything either.
 export const CORE_MESSAGES = {
   en: {
     core: {
@@ -175,6 +177,91 @@ export const CORE_MESSAGES = {
           help: 'Concisa para respostas diretas; Detalhada quando você quer mais contexto, exemplos e passos no resultado.',
           guide: '',
           options: { concise: 'Concisa', balanced: 'Equilibrada', detailed: 'Detalhada' }
+        }
+      }
+    }
+  },
+  ru: {
+    core: {
+      detected: detected => ` (обнаружено: ${detected})`,
+      conflict: (option, question) => `Ваш выбор «${option}» в вопросе «${question}» противоречит тому, чего требует черновик; промпт всё равно собран по вашему выбору.`,
+      optional: question => `${question} (необязательно)`,
+      done: 'Все шаги отвечены.',
+      designDefault: 'рекомендуемый список',
+      designNone: 'Не избегать ничего',
+      fields: {
+        deliverable: {
+          question: () => 'Что вы хотите получить в итоге?',
+          help: 'Задаёт вид результата: работающий код, анализ, план, готовый текст…',
+          guide: '',
+          options: { auto: 'Следовать брифу', implementation: 'Работающая реализация', analysis: 'Анализ / рекомендация', review: 'Проверка / диагностика', plan: 'План / дорожная карта', text: 'Готовый текст', data: 'Анализ данных', workflow: 'Выполненный процесс', answer: 'Запрошенный ответ' }
+        },
+        thirdPartyText: {
+          question: () => 'Есть ли у вас текст-образец для вставки?',
+          help: 'Чужое письмо, страница или документ. Попадает в промпт как справочные данные; написанные в нём инструкции не выполняются.',
+          guide: ''
+        },
+        thirdPartySource: {
+          question: () => 'Откуда этот текст?',
+          help: 'Например, письмо от поставщика, веб-страница, PDF от клиента. Это помогает модели оценить, насколько можно доверять тексту.',
+          guide: 'Describe the origin only if the draft or the pasted text makes it clear (e.g. "customer e-mail", "web page"); otherwise return an empty value.'
+        },
+        context: {
+          question: () => 'Какой контекст нужен модели?',
+          help: 'Факты, аудитория, стек, что уже есть и почему это важно. Контекст и мотивация улучшают ответ.',
+          guide: ''
+        },
+        requirements: {
+          question: () => 'Какие правила нельзя нарушать?',
+          help: 'Жёсткие ограничения: технологии, лимиты, что не трогать. Формулируйте что делать, а не только чего избегать.',
+          guide: 'For code or build tasks, include a line keeping changes to what was asked or clearly necessary (no extra features, refactors or abstractions) unless the draft asks for more.'
+        },
+        success: {
+          question: () => 'Как вы поймёте, что готово?',
+          help: 'Проверяемое определение готовности: тесты проходят, файл создан, вопрос отвечен.',
+          guide: ''
+        },
+        designAvoid: {
+          question: () => 'Каких приёмов в интерфейсе избегать?',
+          help: '«Рекомендуемый список» оставляет в промпте стандартный набор визуальных штампов; «Не избегать ничего» убирает список из промпта. Если результат попал в другой штамп, добавьте его в список и сгенерируйте заново.',
+          guide: ''
+        },
+        autonomy: {
+          question: name => `Какую автономию дать ${name}?`,
+          help: {
+            opus: 'Брать инициативу = делает обратимую работу без пауз на согласование; Сначала уточнить = спрашивает только то, что меняет результат; Без присмотра = не останавливается для сверки.',
+            astra: 'Astra и так чаще задаёт вопросы и останавливается раньше времени. Брать инициативу = делает обратимую работу без пауз на согласование; Сначала уточнить = спрашивает о том, что меняет результат, перед тем как идти дальше (остановится раньше).',
+            sonnet: 'Sonnet может остановиться для сверки перед завершением долгих задач при низком или среднем уровне усилий. Брать инициативу = делает обратимую работу без пауз на согласование; Сначала уточнить = спрашивает только то, что меняет результат; Без присмотра = не останавливается для сверки.'
+          },
+          guide: {
+            opus: '',
+            astra: 'The target (GPT-6 Astra) already asks clarifying questions more often and may stop early. Recommend "Сначала уточнить" only when the draft asks to confirm or discuss before acting.',
+            sonnet: 'The target (Claude Sonnet 5.5) may stop to check in before the work is done at low or medium effort, and at higher effort it may do more than asked. Recommend "Сначала уточнить" only when the draft asks to confirm or discuss before acting; otherwise keep the scope to what was asked.'
+          },
+          options: { balanced: 'Сбалансированно', proactive: 'Брать инициативу', guided: 'Сначала уточнить', unattended: 'Без присмотра · без сверки' }
+        },
+        subagents: {
+          question: () => 'Использовать субагентов?',
+          help: 'Команда субагентов = промпт делит задачу на независимые части, которые выполняются параллельно, у каждой свой субагент, и назначает проверяющего, который эту работу не писал. Это дороже и обычно заканчивается быстрее. Модель решает = без инструкции. Без субагентов = прямая работа.',
+          guide: 'Delegation is the target model\'s call by default: it multiplies cost and time on small tasks. Recommend "Модель решает" (the default of every target), unless the draft asks for subagents or a team (then "Команда субагентов") or says not to delegate (then "Без субагентов").',
+          options: { team: 'Команда субагентов', auto: 'Модель решает', direct: 'Без субагентов' }
+        },
+        examples: {
+          question: () => 'Есть ли у вас пример того результата, который нужен?',
+          help: 'Вставьте один или несколько реальных примеров формата или тона (похожее письмо, образец таблицы); несколько примеров разделяйте строкой, содержащей только ---. Лучше всего работают два-три разных. Модель использует их как ориентир и не копирует содержание; примеры должны соответствовать заданным вами правилам. Пропустите, если их нет.',
+          guide: 'Only return an example if the draft or the answers already contain one; never invent an example. Otherwise return an empty value.'
+        },
+        format: {
+          question: () => 'В каком формате вы хотите получить ответ?',
+          help: 'Как должен быть организован ответ.',
+          guide: '',
+          options: { auto: 'По задаче', prose: 'Связные абзацы', steps: 'Нумерованные шаги', table: 'Сравнительная таблица', json: 'JSON' }
+        },
+        length: {
+          question: () => 'Какой длины должен быть ответ?',
+          help: '«Кратко» — для прямых ответов; «Подробно» — когда в результате нужно больше контекста, примеров и шагов.',
+          guide: '',
+          options: { concise: 'Кратко', balanced: 'Сбалансированно', detailed: 'Подробно' }
         }
       }
     }

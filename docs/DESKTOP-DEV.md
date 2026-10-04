@@ -12,8 +12,8 @@ are in `AGENTS.md`; the standing decisions are in `docs/adr/`; the vocabulary is
 | `desktop/src/engine-astra.js` | GPT-6 Astra prompt engine. Same shape and rules. |
 | `desktop/src/engine-sonnet.js` | Claude Sonnet 5.5 prompt engine. Same shape and rules. |
 | `desktop/src/studio-core.js` | Step flow (questions, recommendations, answers to brief). Holds the target registry (`TARGETS`: id, label, model, key, default-target pattern, engine, capabilities); imports only the engines and `i18n-core.js`. The build reads its engine list from those imports. |
-| `desktop/src/i18n-core.js` | Questions, help and option labels, `en` and `pt`. |
-| `desktop/src/i18n-ui.js` | Every string `plugin.js` shows (buttons, notes, errors, shortcut help), `en` and `pt`. |
+| `desktop/src/i18n-core.js` | Questions, help and option labels, `en`, `pt` and `ru`. |
+| `desktop/src/i18n-ui.js` | Every string `plugin.js` shows (buttons, notes, errors, shortcut help), `en`, `pt` and `ru`. |
 | `desktop/src/plugin-head.js` | The plugin's imports and `ID`; the only hand-written file allowed to import. |
 | `desktop/src/studio-state.js` | The `@core` state machine (reducer), the studio atom and the one `lifecycle` object that holds every piece of module-level mutable state (plugin context, opened address, serial counters, timers, suggestion cache). No imports. |
 | `desktop/src/ui-locale.js`, `ui-keys.js`, `ui-settings.js`, `ui-suggestions.js`, `ui-steps.js`, `ui-composer.js` | The rest of the Desktop UI, one module per responsibility: locale helpers and the composer adapter; the shortcut map, key display and keydown listener; preferences, Settings and the model picker; the suggestion machine; the strip and the step flow; opening from the composer, host calls, placing, closing and `export default`. Concatenated in this order into `plugin.js`'s single module scope. No imports. |
@@ -60,10 +60,17 @@ row in this table.
 ## i18n
 
 The UI is English-first through the Desktop plugin i18n API: `ctx.i18n.register(bundles)` in `register()`,
-`usePluginI18n(id)` in React, `ctx.i18n.t` outside React. Rule: the `en` and `pt` bundles must have exactly the same
-keys, and every key the UI asks for exists in both (the tests check both: `studio-core.test.mjs` compares the two
-bundles; the last test of `studio-flow.test.mjs` checks each key the UI asked `ctx.i18n.t` for while the flow tests ran).
-Add a key to both in the same change and delete it from both when its last use goes (no test finds a key nothing reads).
+`usePluginI18n(id)` in React, `ctx.i18n.t` outside React. Rule: every bundle must have exactly the same keys, and every
+key the UI asks for exists in all of them (the tests check it: `studio-core.test.mjs` compares each bundle against `en`;
+the last test of `studio-flow.test.mjs` checks each key the UI asked `ctx.i18n.t` for while the flow tests ran, in every
+registered bundle).
+Add a key to every bundle in the same change and delete it from every one when its last use goes (no test finds a key
+nothing reads). A new locale is a new bundle in `i18n-ui.js` and `i18n-core.js` plus its name in `BUNDLE_LOCALES`
+(`ui-locale.js`); the Settings selector derives its list from that constant, and `localeOf` resolves a locale by
+membership, not by a branch, so it needs no edit.
+A locale with no real translation fails the "no `ru` string is byte-identical to `en`" tests unless the key is allowlisted
+as a name or a `guide`. `guide` strings are read by the model and stay English in every bundle by decision
+(`docs/adr/0007-russian-third-bundle.md`); `help` strings are for a human and are localized.
 `errors.<code>` is the backend's code table: `studio-core.test.mjs` requires one text per code a client can receive
 (`docs/CONTRACT.md`) and none for a code the REST routes cannot return; `tests/test_contract.py` checks that table against
 what the routes answer. Generated prompts are not translated: section

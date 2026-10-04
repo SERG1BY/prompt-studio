@@ -102,3 +102,60 @@ test('engine profiles: Opus and Sonnet read the default rules; Astra keeps its o
   assert.equal(ASTRA.analyze({ goal: 'Pesquise e compare a planilha de vendas com o mercado' }).deliverable, 'analysis')
   assert.equal(OPUS.analyze({ goal: 'Pesquise e compare a planilha de vendas com o mercado' }).deliverable, 'data')
 })
+
+// Russian coverage. The rules carry Russian on the same footing as pt/en (docs/adr/0007), and two
+// defects of that work were invisible to CI: a Cyrillic stem followed by \w* (which is ASCII-only, so
+// only the bare stem ever matched) and a Russian form that never matched in any case. Both are pinned
+// here per category, with the everyday-Russian negatives that must not read as a task.
+test('Russian drafts are classified like Portuguese ones', () => {
+  const { detect } = DETECTION.createDetector()
+  const cases = [
+    ['Напиши план по запуску нового сервиса', 'plan', 'business'],
+    ['Создай веб-дашборд для учёта расходов', 'implementation', 'code'],
+    ['Проведи ревью этого API и напиши отчёт', 'review', 'code'],
+    ['Настрой автоматизацию: бот должен слать отчёт', 'workflow', 'agent'],
+    ['Нужно проанализировать данные из CSV', 'data', 'data'],
+    ['Напиши письмо клиенту с предложением', 'text', 'writing'],
+    ['Исследуй рынок и сравни конкурентов', 'analysis', 'research'],
+    ['Создай воркфло для сборки отчётов', 'workflow', 'agent'],
+    ['Объясни, как работает код', 'answer', null]
+  ]
+  for (const [draft, signal, category] of cases) {
+    const got = detect(draft)
+    assert.equal(got.signal, signal, `signal for "${draft}"`)
+    if (category) assert.equal(got.category, category, `category for "${draft}"`)
+  }
+})
+
+test('a Russian stem matches its inflected forms, not only the bare stem', () => {
+  const { detect } = DETECTION.createDetector()
+  // Each pair is a spelling that \w* could never reach, because \w does not match a Cyrillic letter.
+  const inflected = [
+    ['Создай пайплайны для обработки заказов', 'agent'],
+    ['Создай интерфейса для деплоя', 'code'],
+    ['Напиши статью про запуске', 'writing'],
+    ['Создай сайты для продаж', 'code'],
+    ['Настрой автоматизации на сервере', 'agent']
+  ]
+  for (const [draft, category] of inflected) {
+    assert.equal(detect(draft).category, category, `"${draft}"`)
+  }
+})
+
+test('ordinary Russian text does not read as a task', () => {
+  const { detect } = DETECTION.createDetector()
+  for (const draft of [
+    'Мой ребёнок пошёл в первый класс',
+    'Планировка квартиры',
+    'Это объективно и понятно',
+    'Вчера был хороший день'
+  ]) {
+    assert.equal(detect(draft).signal, null, `"${draft}" must not name a deliverable`)
+  }
+})
+
+test('no Cyrillic stem is followed by \w*, which matches nothing after a Russian letter', async () => {
+  const source = await src('detection-core.js')
+  const dead = [...source.matchAll(/[а-я]+\w\*/g)].map(m => m[0])
+  assert.deepEqual(dead, [], `stems that only ever match themselves: ${dead.join(', ')}`)
+})

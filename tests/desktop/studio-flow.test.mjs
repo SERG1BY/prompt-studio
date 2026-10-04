@@ -128,6 +128,9 @@ export const GlyphSpinner = () => null
 export const Kbd = ({ children, variant, size, ...props }) => jsx('kbd', { ...props, 'data-kbd-variant': variant || 'default', children })
 // Plugin i18n like apps/desktop/src/i18n/plugin-i18n.ts: active locale -> en -> key.
 export const i18n = { locale: 'en', bundles: {} }
+// The locales every bundle in the plugin carries. Taken from the registered bundles themselves, so a new
+// bundle is covered by the locale-parametrised tests below without editing them one by one.
+export function locales() { return Object.keys(i18n.bundles) }
 function resolve(locale, key, args) {
   let value = i18n.bundles[locale]
   for (const part of key.split('.')) value = value?.[part]
@@ -217,7 +220,7 @@ export const host = {
   writeFileSync(join(tmp, 'sdk.js'), sdkSource)
   writeFileSync(join(tmp, 'entry.js'), `
 export { default as plugin, SHORTCUTS } from ${JSON.stringify(process.env.PROMPT_STUDIO_PLUGIN || join(repo, 'desktop', 'plugin.js'))}
-export { notifications, i18n, translate, $locale, host } from './sdk.js'
+export { notifications, i18n, translate, $locale, host, locales } from './sdk.js'
 export { createRoot } from 'react-dom/client'
 export { act } from 'react'
 export { jsx } from 'react/jsx-runtime'
@@ -1209,12 +1212,12 @@ test('SHORTCUT MAP: every key cap, aria-keyshortcuts, target key and Alt+Shift e
   await press(map.close)
 })
 
-test('SHORTCUT MAP: texts that teach a key (tooltip, notices, notes, errors) print the map\'s combo, en and pt', { skip }, async () => {
+test('SHORTCUT MAP: texts that teach a key (tooltip, notices, notes, errors) print the map\'s combo in every locale', { skip }, async () => {
   const original = structuredClone(K())
   const swapped = { open: 'F11', settings: 'F12', generate: 'F2', mode: 'Alt+Z', pick: 'Option+1…9' }
   const stale = /\b(F4|F3|F9)\b|Alt\+I|Alt\+digit/
   try {
-    for (const locale of ['en', 'pt']) {
+    for (const locale of ui.locales()) {
       Object.assign(ui.SHORTCUTS, original)
       await freshSettings('sess-1')
       ui.i18n.locale = locale
@@ -1647,9 +1650,9 @@ test('CT-01: an error code from the backend shows a localized tooltip; unknown o
   globalThis.__promptStudioTest.translated.delete('errors.brand_new_code') // asked on purpose: it has no text
 })
 
-test('#32: auth_failed, rate_limited and provider_timeout show their own text in the /suggest and /compose tooltips and the context note, in en and pt', { skip }, async () => {
+test('#32: auth_failed, rate_limited and provider_timeout show their own text in the /suggest and /compose tooltips and the context note, in every locale', { skip }, async () => {
   const codes = ['auth_failed', 'rate_limited', 'provider_timeout']
-  for (const locale of ['en', 'pt']) {
+  for (const locale of ui.locales()) {
     ui.i18n.locale = locale
     await ui.act(async () => { ui.$locale.set(locale) })
     for (const code of codes) {
@@ -2069,10 +2072,10 @@ test('CX-1: a context read answered host_incompatible tells the user to update t
   assert.ok(!status.includes(errorText('unavailable')), 'not the generic "model could not be reached" note')
 })
 
-test('CX-1: /suggest and /compose answered host_incompatible show the update-the-plugin tooltip in en and pt, not the generic one', { skip }, async () => {
+test('CX-1: /suggest and /compose answered host_incompatible show the update-the-plugin tooltip in every locale, not the generic one', { skip }, async () => {
   backend.suggest = () => ({ ok: false, code: 'host_incompatible', error: 'Hermes changed in a way this Prompt Studio version does not support; update the plugin (details in the Hermes log)' })
   backend.compose = () => ({ ok: false, code: 'host_incompatible', error: 'Hermes changed in a way this Prompt Studio version does not support; update the plugin (details in the Hermes log)' })
-  for (const locale of ['en', 'pt']) {
+  for (const locale of ui.locales()) {
     ui.i18n.locale = locale
     await ui.act(async () => { ui.$locale.set(locale) })
     await openStudio()
@@ -2154,11 +2157,12 @@ test('FIN-1: the preview offers Send now (F9) and Put in composer to edit (Alt+E
   await press(K().help)
   assert.ok($('[data-studio-shortcuts-list] [data-studio-shortcut-row="Alt+E"]'), 'Alt+E in the F1 list')
   await press(K().help)
-  for (const locale of ['en', 'pt']) {
+  for (const locale of ui.locales()) {
     const b = ui.i18n.bundles[locale]
     assert.ok(b.preview.send && b.preview.edit && b.shortcuts.editPrompt, `labels in ${locale}`)
   }
   assert.equal(ui.i18n.bundles.pt.preview.send, 'Enviar agora')
+  assert.equal(ui.i18n.bundles.ru.preview.send, 'Отправить сейчас')
 })
 
 test('FIN-1: F9 on the preview sends the prompt through host.composer.submit for the bound session and closes', { skip }, async () => {
@@ -2398,10 +2402,10 @@ test('README-KEYS: the README keyboard table shows, per platform, the keys the F
   assert.ok(!/\bfn\b/i.test(readme.slice(start, end)), 'the table never says fn')
 })
 
-test('KEYS-MAC-CAPS: the done text, the empty-draft notice and Settings errors name the key as a Mac shows it; the F1 notes are en/pt', { skip }, async () => {
+test('KEYS-MAC-CAPS: the done text, the empty-draft notice and Settings errors name the key as a Mac shows it; the F1 notes cover every locale', { skip }, async () => {
   const original = structuredClone(K())
   try {
-    for (const locale of ['en', 'pt']) {
+    for (const locale of ui.locales()) {
       await freshSettings('sess-1')
       ui.i18n.locale = locale
       await ui.act(async () => { ui.$locale.set(locale) })
@@ -4040,15 +4044,17 @@ test('#39: no tabbable element lacks an accessible name on any studio screen', {
 
 // Last on purpose: it reads what every test above made the UI ask the SDK to translate (a screen that renders a key
 // missing from a locale shows the raw key to the user).
-test('i18n: every key the UI asked ctx.i18n.t for in this file exists in en and pt', { skip }, () => {
+test('i18n: every key the UI asked ctx.i18n.t for in this file exists in every bundle', { skip }, () => {
   const has = (locale, key) => {
     let value = ui.i18n.bundles[locale]
     for (const part of key.split('.')) value = value?.[part]
     return typeof value === 'string' || typeof value === 'function'
   }
   const asked = [...globalThis.__promptStudioTest.translated]
+  const locales = Object.keys(ui.i18n.bundles)
   assert.ok(asked.length > 0, 'the UI translated nothing')
-  assert.deepEqual(asked.flatMap(key => ['en', 'pt'].filter(locale => !has(locale, key)).map(locale => `${locale}: ${key}`)), [])
+  assert.ok(locales.includes('ru'), 'the ru bundle is registered with the host')
+  assert.deepEqual(asked.flatMap(key => locales.filter(locale => !has(locale, key)).map(locale => `${locale}: ${key}`)), [])
 })
 
 // ---------------------------------------------------------------- REG-MODELS: per-request Settings isolation

@@ -24,9 +24,14 @@ const targetLabel = id => (targetOf(id) || FALLBACK_TARGET).label
 export const MESSAGES = CORE_MESSAGES
 // Skipped text answer. '(pulado)' is the marker saved before v1 and is still understood.
 export const SKIPPED = '(skipped)'
-const NONE_WORDS = ['(skipped)', '(pulado)', 'none', 'nenhum', 'nenhuma', 'nada', '-', 'vazio', 'skip', 'nao evitar nada', 'avoid nothing']
-// Design-step button labels, both locales, plus the pre-0.3.1 label; all mean "the default list".
-const DESIGN_DEFAULT_WORDS = ['recommended list', 'lista recomendada', 'padrao do site', 'recommended', 'recomendado']
+// Every locale's "leave empty" wording, the skip markers of every version, plus the generic words; all mean
+// "no answer". The Russian entries are fold()ed, not transliterated: fold() rewrites the draft and these are
+// compared against foldText(), so 'й' must be 'и' ("Рекомендуемый список" folds to 'рекомендуемыи список'),
+// 'ё' must be 'е', and a Russian word is spelled out, never written as Latin letters.
+const NONE_WORDS = ['(skipped)', '(pulado)', 'none', 'nenhum', 'nenhuma', 'nada', '-', 'vazio', 'skip', 'nao evitar nada', 'avoid nothing', 'нет', 'нет ничего', 'у меня нет', 'не избегать ничего']
+// Design-step button labels, every locale, plus the pre-0.3.1 label; all mean "the default list". Folded,
+// like NONE_WORDS above: the ru button reads 'Рекомендуемый список'.
+const DESIGN_DEFAULT_WORDS = ['recommended list', 'lista recomendada', 'padrao do site', 'recommended', 'recomendado', 'рекомендуемыи список']
 // The engine reads 'none' as "no design line"; an empty value would bring its default list back.
 const DESIGN_NONE_VALUE = 'none'
 

@@ -55,7 +55,7 @@ REASON_LIMIT = 300  # the model's "reason" / "notes" sentence
 MIN_PROMPT_CHARS = 20  # shorter compose output is treated as a failure
 # Language of the human-facing sentences the model returns (suggest "reason", compose "notes").
 # The prompt itself always follows the language of the user's draft.
-LOCALE_LANGUAGES = {"en": "English", "pt": "Brazilian Portuguese"}
+LOCALE_LANGUAGES = {"en": "English", "pt": "Brazilian Portuguese", "ru": "Russian"}
 DEFAULT_LOCALE = "en"
 TARGET_NAMES = {"opus": "Claude Opus 5.5", "astra": "GPT-6 Astra", "sonnet": "Claude Sonnet 5.5"}
 
@@ -107,13 +107,12 @@ def _cut(value: Any, limit: int) -> bool:
     return isinstance(value, str) and len(value.strip()) > limit
 
 
+def _locale(payload: Mapping[str, Any]) -> str:
+    return _clean(payload.get("locale"), 10).lower()
+
+
 def _language(payload: Mapping[str, Any]) -> str:
-    locale = _clean(payload.get("locale"), 10).lower()
-    return LOCALE_LANGUAGES.get(locale, LOCALE_LANGUAGES[DEFAULT_LOCALE])
-
-
-def _is_pt(payload: Mapping[str, Any]) -> bool:
-    return _clean(payload.get("locale"), 10).lower() == "pt"
+    return LOCALE_LANGUAGES.get(_locale(payload), LOCALE_LANGUAGES[DEFAULT_LOCALE])
 
 
 def _field(payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -584,6 +583,9 @@ def build_compose_messages(payload: Mapping[str, Any]) -> list[dict[str, str]]:
 
 RESTORED_NOTE_EN = "Official documentation line restored: the AI had removed it."
 RESTORED_NOTE_PT = "Frase da documentação oficial recolocada: a IA a tinha removido."
+RESTORED_NOTE_RU = "Строка официальной документации восстановлена: ИИ её удалил."
+# One note per locale, 'en' the fallback for anything the model map does not know.
+RESTORED_NOTES = {"en": RESTORED_NOTE_EN, "pt": RESTORED_NOTE_PT, "ru": RESTORED_NOTE_RU}
 
 
 def compose(payload: Mapping[str, Any], llm: Callable[..., Any] | None = None, deadline: float | None = None) -> dict[str, Any]:
@@ -612,7 +614,7 @@ def compose(payload: Mapping[str, Any], llm: Callable[..., Any] | None = None, d
     final, restored = keep_required_lines(final, baseline)
     notes = _clean(data.get("notes"), REASON_LIMIT)
     if restored:
-        notes = (notes + " " if notes else "") + (RESTORED_NOTE_PT if _is_pt(payload) else RESTORED_NOTE_EN)
+        notes = (notes + " " if notes else "") + RESTORED_NOTES.get(_locale(payload), RESTORED_NOTE_EN)
     result = {
         "ok": True,
         "prompt": final,

@@ -6,9 +6,9 @@ auxiliary task `prompt_studio` (config block `auxiliary.prompt_studio`; with no 
 the main model). Request models declare every field
 below: undeclared fields are dropped.
 
-`locale` (both POST routes, optional): `"en"` (default) or `"pt"`. It sets the language of the human-facing text the
-model returns (`reason` for /suggest, `notes` for /compose): English for `en`, Brazilian Portuguese for `pt`; any other
-value is treated as `en`. It never changes the prompt itself, which follows the language of the user's draft.
+`locale` (both POST routes, optional): `"en"` (default), `"pt"` or `"ru"`. It sets the language of the human-facing
+text the model returns (`reason` for /suggest, `notes` for /compose): English for `en`, Brazilian Portuguese for
+`pt`, Russian for `ru`; any other value is treated as `en`, and never changes the prompt, which follows the draft.
 
 Field types. `model_choice.effort` is the only literal type (a value outside its list is a 422). `target`, `mode`,
 `locale`, `field.kind` and `answers[].kind` are plain strings of at most 200 characters: the values listed in the blocks
@@ -33,7 +33,7 @@ adaptation follows the chosen provider. The `model` label in every response is t
   "ladder": [ { "question": "string", "answer": "string", "category": "field id|null" } ],
   "mode": "suggest|improve (default suggest)",
   "answer": "user's own text, required for improve",
-  "locale": "en|pt (default en)",
+  "locale": "en|pt|ru (default en)",
   "model_choice": { "provider": "…", "model": "…", "effort": "…" },
   "session_context": "summary from /context (optional, ≤ 3000 chars)",
   "field": {
@@ -65,7 +65,7 @@ cannot pose as a new section.
   "intent": "the user's draft (required)",
   "answers": [ { "id": "field id", "kind": "enum|text|design|example", "question": "…", "answer": "…", "isDefault": true } ],
   "baseline": "the engine's prompt for the same answers",
-  "locale": "en|pt (default en)",
+  "locale": "en|pt|ru (default en)",
   "model_choice": { "provider": "…", "model": "…", "effort": "…" }
 }
 ```
@@ -77,7 +77,7 @@ waits 50 s and then uses `baseline`.
 ## POST /context
 ```json
 { "session_id": "stored session id (required, 1..128 chars, [A-Za-z0-9_.:-])", "profile": "default (≤ 64, [A-Za-z0-9_-])",
-  "locale": "en|pt", "model_choice": { "provider": "…", "model": "…", "effort": "…" } }
+  "locale": "en|pt|ru", "model_choice": { "provider": "…", "model": "…", "effort": "…" } }
 ```
 Opens the profile's session store read-only (`hermes_cli.web_server_sessions._open_session_db_for_profile(profile,
 read_only=True)`, falling back to `hermes_state.SessionDB(read_only=True)` for the default profile), resolves the id like
@@ -154,7 +154,7 @@ Nothing is ever replaced by a made-up answer. What the routes answer when the re
 
 Engine failures (`ok: false` from /suggest and /compose, HTTP 200) also carry a stable machine `code`; `error` is a short
 English technical detail for logs and tests, never provider text (provider exceptions are logged server-side and only
-their class name is returned). The desktop shows its own localized text for `code` (en/pt, `errors.<code>`) and falls
+their class name is returned). The desktop shows its own localized text for `code` (en/pt/ru, `errors.<code>`) and falls
 back to `error` when the code is unknown or absent.
 
 | `code` | Route | When | `error` |
@@ -174,7 +174,7 @@ back to `error` when the code is unknown or absent.
 | `provider_bad_request` | both | the provider rejects the request (400 / BadRequestError) and no code above matched | `provider bad request: <ExceptionClassName>` |
 | `rate_limited` | both | the provider throttles the requests (429 / RateLimitError) and no code above matched (a 429 that names billing is `provider_payment`) | `rate limited: <ExceptionClassName>` |
 | `provider_timeout` | both | the provider call itself timed out (client timeout, 408, 504) before the Studio's own deadline; the deadline stays `timeout` | `provider timeout: <ExceptionClassName>` |
-| `host_incompatible` | both | the installed Hermes changed a signature the plugin relies on (see "Hermes host" below); no provider call was made. The desktop shows a localized (en/pt) "update the plugin" text in the context note and in the /suggest and /compose tooltips | `Hermes changed in a way this Prompt Studio version does not support; update the plugin (details in the Hermes log)` |
+| `host_incompatible` | both | the installed Hermes changed a signature the plugin relies on (see "Hermes host" below); no provider call was made. The desktop shows a localized (en/pt/ru) "update the plugin" text in the context note and in the /suggest and /compose tooltips | `Hermes changed in a way this Prompt Studio version does not support; update the plugin (details in the Hermes log)` |
 | `empty_reply` | both | empty reply twice, or once when it ended on `finish_reason: length` (no retry: the same cap ends the same way) (also `empty: true`) | fixed sentence |
 
 One classifier (`PROVIDER_ERRORS` in `llm_adapter.py`) turns a failed provider call into its code for /suggest, /compose and

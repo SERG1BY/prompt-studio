@@ -39,7 +39,7 @@ _READ_WINDOW = 200  # newest rows scanned to find the last user/assistant turns
 SESSION_ID_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
 PROFILE_RE = re.compile(r"^[A-Za-z0-9_-]{0,64}$")
 _EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=2, thread_name_prefix="prompt-studio-context")
-LOCALE_LANGUAGES = {"en": "English", "pt": "Brazilian Portuguese"}
+LOCALE_LANGUAGES = {"en": "English", "pt": "Brazilian Portuguese", "ru": "Russian"}
 
 CONTEXT_SYSTEM = """You summarize a chat session so a prompt-builder form can avoid asking what the conversation already says.
 
