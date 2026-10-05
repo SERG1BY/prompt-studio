@@ -78,16 +78,21 @@ headers and rule lines stay English, and the user's text is copied as written.
 
 ## Draft recognition languages
 
-The draft recognizers support Portuguese and English only. The recognition rules live once, in
+The draft recognizers support Portuguese, English and Russian. The recognition rules live once, in
 `desktop/src/detection-core.js`, as data: `DETECTION.createDetector(profile)` takes a profile of rule lines
 (`verbs`, `categories`, `dataNoun`, `dataUnless`, `foldLimit`) and returns the detector. An engine passes only the rule
 lines in which it differs: Opus and Sonnet read the default profile, Astra passes its own verbs and data rule
 (`desktop/src/engine-astra.js`, `DETECTOR`). A recognition fix is made in the core and reaches every target. The
 other keyword regexes (`UI_*`, `*_NOUN`, `ASK_FIRST`, subagent and format hints in `engine-astra.js`; `INTERFACE` in
 `engine-opus.js` and `engine-sonnet.js`) stay in their engine. The core lower-cases the draft and strips diacritics
-first (`fold()`), so the Portuguese words are written without accents. The dashboard's
-`REQUIRED_LINES` proof words and `_AUTONOMY_HEADERS` in `dashboard/suggest_engine.py` are also
-English + Portuguese. Each pattern carries a `Languages:` comment; other languages fall back to defaults.
+first (`fold()`), so the Portuguese words are written without accents and the Russian ones in folded form: `ё`
+becomes `е` and `й` becomes `и`, so a pattern spells `создаи`, not `создай`. The same fold applies to the word
+boundary: `\b` is ASCII-only and never fires next to a Cyrillic letter, so every boundary in that file is an
+explicit lookaround over ASCII, folded Latin and Cyrillic, and no Russian stem may be followed by `\w*` (it would
+match only the bare stem). The dashboard's
+`REQUIRED_LINES` proof words and `_AUTONOMY_HEADERS` in `dashboard/suggest_engine.py` are still
+English + Portuguese: they match against lines the model returns, not against the user's draft. Each pattern carries a
+`Languages:` comment naming the languages it really matches; other languages fall back to defaults.
 The first verb in the draft decides the deliverable. A "show me / give me / tell me" request for code ("Can you show me a script that extracts data?", "Me mostre uma função") is read as a question: it asks for an answer, and only a build verb in a later sentence or after "and" makes it an implementation. `tests/desktop/draft-recognition.test.mjs` holds the draft table
 all three engines must agree on; `tests/desktop/detection-core.test.mjs` fails when an engine declares a detection
 rule of its own, and the build allows an engine no import but the core (`node scripts/build.mjs`).

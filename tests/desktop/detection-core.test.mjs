@@ -148,9 +148,15 @@ test('ordinary Russian text does not read as a task', () => {
     'Мой ребёнок пошёл в первый класс',
     'Планировка квартиры',
     'Это объективно и понятно',
-    'Вчера был хороший день'
+    'Вчера был хороший день',
+    // Everyday words that look like a code artifact: "класс" is a school class, not a class in code.
+    'Отчёт по класса учеников',
+    'Распределение по классам',
+    'Встреча с классом руководителей',
+    'Ответственный за класс'
   ]) {
     assert.equal(detect(draft).signal, null, `"${draft}" must not name a deliverable`)
+    assert.notEqual(detect(draft).category, 'code', `"${draft}" must not read as code work`)
   }
 })
 

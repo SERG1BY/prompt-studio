@@ -143,8 +143,10 @@ def test_every_provider_code_is_documented_and_has_localized_text():
     for code in codes + ["unavailable"]:
         assert contract.count(f"| `{code}` |") >= 2, f"{code}: one row in the /context table and one in the /suggest table"
     for code in codes:
-        # One entry per bundle; the bundle list comes from the file itself, so a new locale is covered.
-        bundles = len(re.findall(r"^\s{2}(?:en|pt|ru): \{", ui, re.MULTILINE))
+        # One entry per bundle. The bundle list is read from the file itself, so a new locale is covered
+        # without touching this test (docs/adr/0007-russian-third-bundle.md: a locale is a list edit).
+        bundles = len(re.findall(r"^\s{2}\w+: \{", ui, re.MULTILINE))
+        assert bundles >= 3, f"the UI bundles are found in the file itself: {bundles}"
         assert len(re.findall(rf"^\s+{code}: key =>", ui, re.MULTILINE)) == bundles, f"{code}: errors.{code} in every bundle"
     assert {"auth_failed", "rate_limited", "provider_timeout"} <= set(codes)
 

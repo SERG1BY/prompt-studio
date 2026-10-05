@@ -1,11 +1,12 @@
 // Every string desktop/plugin.js shows outside the studio core (buttons, notes, errors, help,
 // shortcut help). Registered with ctx.i18n.register(UI_MESSAGES) in register(); read with
-// usePluginI18n(ID) in React and ctx.i18n.t outside it. `en` is complete and the default;
-// `pt` is complete Brazilian Portuguese (unused until the app ships a pt locale).
-// Both bundles must keep exactly the same keys (tests/desktop/studio-flow.test.mjs checks it).
+// usePluginI18n(ID) in React and ctx.i18n.t outside it. `en` is complete and the default; `pt` and `ru`
+// are complete Brazilian Portuguese and Russian. Every bundle must keep exactly the same keys
+// (tests/desktop/studio-flow.test.mjs checks it). The Settings selector reaches all three through
+// LANGUAGES, so none of them is dead code (docs/adr/0007-russian-third-bundle.md).
 export const UI_MESSAGES = {
   en: {
-    // Lets code outside React learn the active locale: t('locale') resolves to 'en' or 'pt'.
+    // Lets code outside React learn the active locale: t('locale') resolves to 'en', 'pt' or 'ru'.
     locale: 'en',
     studio: {
       region: 'Prompt Studio',
@@ -177,7 +178,7 @@ export const UI_MESSAGES = {
       languageAuto: 'Follow Hermes',
       languagePt: 'Português',
       languageEn: 'English',
-      languageRu: 'Russian',
+      languageRu: 'Русский',
       close: 'Close'
     },
     preview: {
@@ -399,7 +400,7 @@ export const UI_MESSAGES = {
       languageAuto: 'Seguir o Hermes',
       languagePt: 'Português',
       languageEn: 'English',
-      languageRu: 'Russian',
+      languageRu: 'Русский',
       close: 'Fechar'
     },
     preview: {
